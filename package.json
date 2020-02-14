@@ -1,0 +1,24 @@
+{
+  "name": "reg-api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "body-parser": "^1.19.0",
+    "cookie-parser": "^1.4.4",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "express-fileupload": "^1.1.6",
+    "formidable": "^2.0.0-canary.20200131.1",
+    "jsonwebtoken": "^8.5.1",
+    "multer": "^1.4.2",
+    "pg": "^7.18.1",
+    "request": "^2.88.2",
+    "request-promise": "^4.2.5"
+  },
+  "scripts": {
+    "start": "set PGUSER=postgres&&set PGHOST=localhost&&set PGPASSWORD=postgres&&set PGDATABASE=paysunion&&set PGPORT=5432&&nodemon index.js",
+    "pg": "set PGUSER=postgres&&set PGHOST=localhost&&set PGPASSWORD=postgres&&set PGDATABASE=paysunion&&set PGPORT=5432&&nodemon pgtest.js"
+  }
+}

@@ -1,0 +1,14 @@
+{
+   error: 422,
+   name: 'ValidationError',
+   message: 'Parameters validation error!',
+   type: null,
+   data: [
+     {
+       field: 'recipient',
+      message: "The 'recipient' field is not a proper mobile number!",
+       type: 'invalid',
+       args: []
+     }
+   ]
+}
