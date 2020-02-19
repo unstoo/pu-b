@@ -229,6 +229,88 @@ const getAccountHolderName = async (phoneNumber) => {
     }
 }
 
+const setAddress = async (country, state, city, zip, addressone, addresstwo ,phoneNumber) => {
+    const client = new Client(clientSettings)
+    try { 
+        await client.connect() 
+    } catch(e) {
+        console.log('setAddress() couldnt connect to pg. error: \n')
+        console.log(e)
+        await client.end()  
+        e.debug = 'setAddress() couldnt connect to pg. error: \n'
+        return [
+            true,
+            e
+        ]
+    }
+
+    try {
+
+        const query = `UPDATE public.users`
+        + ` SET country = $1::text, state = $2::text, city = $3::text, zip = $4::text, addressone = $5::text, addresstwo = $6::text ` 
+        + `WHERE phonenumber = $7::text`
+        const data = [country, state, city, zip, addressone, addresstwo, phoneNumber]
+        const response = await client.query(query, data)
+        await client.end() 
+   
+        return [
+            null,
+            response.rows[0]
+        ]
+    } catch (e) {
+        console.log('error while setAddress() against pg: \n')
+        console.log(e)
+        await client.end()  
+        e.debug = 'error while setAddress() against pg: \n'
+        return [
+            true,
+            e
+        ]
+    }
+
+}
+
+const setIdData = async (idDateIssue, idDateExpiration, idDivsionCode, idIssuer, idSeries, idNumber, sex, idType, phoneNumber) => {
+    const client = new Client(clientSettings)
+    try { 
+        await client.connect() 
+    } catch(e) {
+        console.log('setIdData() couldnt connect to pg. error: \n')
+        console.log(e)
+        await client.end()  
+        e.debug = 'setIdData() couldnt connect to pg. error: \n'
+        return [
+            true,
+            e
+        ]
+    }
+
+    try {
+
+        const query = `UPDATE public.users`
+        + ` SET iddateissue = $1::text, iddateexpiration = $2::text, iddivsioncode = $3::text,` 
+        + ` idissuer = $4::text, idseries = $5::text, idnumber = $6::text, sex = $7::text, idtype = $8::text` 
+        + ` WHERE phonenumber = $9::text`
+        const data = [idDateIssue, idDateExpiration, idDivsionCode, idIssuer, idSeries, idNumber, sex, idType, phoneNumber]
+        const response = await client.query(query, data)
+        await client.end() 
+   
+        return [
+            null,
+            response.rows[0]
+        ]
+    } catch (e) {
+        console.log('error while setIdData() against pg: \n')
+        console.log(e)
+        await client.end()  
+        e.debug = 'error while setIdData() against pg: \n'
+        return [
+            true,
+            e
+        ]
+    }
+}
+
 
 
 // setPersonalData('Joe', 'Doe', '', '31-12-1965', 'United States', 996) -- OK
@@ -242,5 +324,7 @@ module.exports = {
     setEmail,
     setPersonalData,
     setAccountType,
-    getAccountHolderName
+    getAccountHolderName,
+    setAddress,
+    setIdData
 }

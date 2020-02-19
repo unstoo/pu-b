@@ -6,12 +6,6 @@ const path = require('path')
 console.log('----- 1')
 
 
-
-
-
-// console.log('loaded token:');
-// console.log(sigmaToken);
-
  const sendSmsWithCode = async (phoneNumber, sigmaCredentials) => {
         console.log('----- 2');
         // TODO: Proper token update mechanism. Mustn't update on every request. (Token lives 1hr)

@@ -11,9 +11,12 @@ const rawCredentials = fs.readFileSync(path.join(__dirname, './smsControls/sigma
 const sigmaCredentials = JSON.parse(rawCredentials)
 
 const { sendSmsWithCode } = require('./smsControls/index.js')
-const { storePhoneNumber, isPhoneNumberStored,
-    matchSmsCode, setVerified, setPassword, setEmail,
-    setPersonalData, setAccountType, getAccountHolderName } = require('./db.js')
+const { 
+    storePhoneNumber, isPhoneNumberStored,
+    matchSmsCode, setVerified, 
+    setPassword, setEmail,
+    setPersonalData, setAccountType, 
+    getAccountHolderName, setAddress, setIdData } = require('./db.js')
 
 const app = express();
 
@@ -40,12 +43,21 @@ app.use(bodyParser.json())
 // JWT
 app.use((req, res, next) => {
     // login does not require jwt verification
-    if (req.path == '/' || req.path == '/api' || req.path == '/login') {
+    if (req.path == '/' || req.path == '/login') {
       // next middleware
       return next()
     }
+
+    if (req.path == '/api') {
+        const newPhoneNumberStep = req.body.phoneNumber && req.body.new
+        const smsCodeVerificatioStep = req.body.smsCodeToMatch && req.body.phoneNumber
+        if (newPhoneNumberStep || smsCodeVerificatioStep) {
+            return next()
+        }
+    }
   
     // get token from request header Authorization
+    
     const token = req.headers.authorization
   
     // Debug print
@@ -56,6 +68,7 @@ app.use((req, res, next) => {
     // Token verification
     try {
       var decoded = jwt.verify(token, jwtSecret);
+      req.body.phoneNumber = decoded.phoneNumber
       req.decodedJWT = decoded
       console.log("decoded", decoded)
     } catch (err) {
@@ -82,7 +95,6 @@ app.use(fileUpload({
 
 app.post('/api', async function (req, res) {
     console.log(req.body)
-    console.log('\n----\n')
     const { body } = req
 
     if (body.phoneNumber && body.new) {
@@ -115,7 +127,7 @@ app.post('/api', async function (req, res) {
         // const [error] = matchSmsCode(phoneNumber, req.body.smsCodeToMatch)
 
         if (!Number.parseInt(smsCodeToMatch)) {
-            return res.json({ status: 'error', value: 'SMS code deosn\'t match.' })
+            return res.json({ status: 'error', value: 'SMS code doesn\'t match.' })
         }
 
         const itDoesMatch = await matchSmsCode(phoneNumber, Number.parseInt(smsCodeToMatch))
@@ -123,7 +135,7 @@ app.post('/api', async function (req, res) {
         if (itDoesMatch) {
             await setVerified(phoneNumber)
             // Authenicate session
-            const token = jwt.sign({ "phoneNumber": phoneNumber }, jwtSecret, { expiresIn: 60 * 60 })
+            const token = jwt.sign({ "phoneNumber": phoneNumber }, jwtSecret, { expiresIn: 60 * 180 })
             return res.json({ status: 'ok', value: 'SMS code match.', "token": token })
 
         }
@@ -135,14 +147,14 @@ app.post('/api', async function (req, res) {
 
     } 
     
-    else if (body.password && body.phoneNumber) {
+    else if (body.password) {
         //TODO: Salt & hash password
         const {password, phoneNumber} = body
         await setPassword(password, phoneNumber)
         return res.json({ status: 'ok', value: 'Password\'s set.' })
     }
 
-    else if (body.email && body.phoneNumber) {
+    else if (body.email) {
         const {email, phoneNumber} = body
         await setEmail(email, phoneNumber)
         return res.json({ status: 'ok', value: 'Email\'s set.' })
@@ -160,7 +172,7 @@ app.post('/api', async function (req, res) {
     } 
     
     else if (body.accountType && ['personal', 'business', 'freelance'].includes(body.accountType.toLowerCase())) {
-        const {accountType, phoneNumber} = body
+        const {accountType, phoneNumber} = body 
         await setAccountType(accountType, phoneNumber)
         return res.json({ status: 'ok', value: 'Account type\'s set.' })
     }
@@ -168,15 +180,28 @@ app.post('/api', async function (req, res) {
     
     else if (req.body.addressData && req.body.addressData.city 
         && req.body.addressData.state && req.body.addressData.zip && req.body.addressData.addressOne) {
+            const {phoneNumber, addressData} = body
+            const {country, state, city, zip, addressOne, addressTwo} = addressData
+            const [error, response] = await setAddress(country, state, city, zip, addressOne, addressTwo, phoneNumber)
 
-            User.addressData = req.body.addressData
+            if (error) {
+                return res.json({ status: 'error', value: 'Something went wrong.', debug: error.debug })
+            }
+
+
             return res.json({ status: 'ok', value: 'Address data\'s set.' })
 
 
     } else if (req.body.idData) {
-    
-                User.idData = req.body.idData
-                return res.json({ status: 'ok', value: 'ID data\'s set.' })
+        const {phoneNumber} = body
+        const { idType, idDateIssue, idDateExpiration, idDivsionCode, idIssuer, idSeries, idNumber, sex } = body.idData
+        const [error, response] = await setIdData(idDateIssue, idDateExpiration, idDivsionCode, idIssuer, idSeries, idNumber, sex, idType, phoneNumber)
+        
+        if (error) {
+            return res.json({ status: 'error', value: 'Something went wrong.', dbg: response.dbg })
+        }
+        
+        return res.json({ status: 'ok', value: 'ID data\'s set.' })
     
     } else if (req.body.idFiles) {
         if (!req.files || Object.keys(req.files).length === 0) {
@@ -191,7 +216,6 @@ app.post('/api', async function (req, res) {
             if (upload[0].size > 0 && upload[1].size > 0) {
                 upload.forEach(file => {
                     moveFile(file.tempFilePath, path.join(__dirname, 'uploads', file.name))
-                    User.idFiles.push(file.name)
                 })
                 
                 return res.json({ status: 'ok', value: 'ID files saved.' })
@@ -222,7 +246,6 @@ app.post('/api', async function (req, res) {
             else {
                 const file_name = upload.name
                 moveFile(upload.tempFilePath, path.join(__dirname, 'uploads', file_name))
-                User.idFiles = [file_name]
                 return res.json({ status: 'ok', value: 'ID files saved.' })
             }
         }
@@ -251,7 +274,6 @@ app.post('/api', async function (req, res) {
         if (!isArray) {
             const file_name = req.files.upload.name
             moveFile(req.files.upload.tempFilePath, path.join(__dirname, 'uploads', file_name))
-            User.idSelfieFile = file_name
         }
 
         if (isArray) {
@@ -283,7 +305,6 @@ app.post('/api', async function (req, res) {
         if (!isArray) {
             const file_name = req.files.upload.name
             moveFile(req.files.upload.tempFilePath, path.join(__dirname, 'uploads', file_name))
-            User.poaFile = file_name
             return res.json({ status: 'ok', value: 'POA file saved.' })
         }
 
@@ -301,7 +322,6 @@ app.post('/api', async function (req, res) {
         res.json({ status: 'error', body: 'Uknown request.' })
     }
 
-    console.log(User)
     console.log('---------------------------------\n')
 })
 
