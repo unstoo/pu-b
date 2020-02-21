@@ -16,7 +16,8 @@ const {
     matchSmsCode, setVerified, 
     setPassword, setEmail,
     setPersonalData, setAccountType, 
-    getAccountHolderName, setAddress, setIdData } = require('./db.js')
+    getAccountHolderName, setAddress, setIdData,
+    setFreelanceInfo, setTxSurvey } = require('./db.js')
 
 const app = express();
 
@@ -135,7 +136,7 @@ app.post('/api', async function (req, res) {
         if (itDoesMatch) {
             await setVerified(phoneNumber)
             // Authenicate session
-            const token = jwt.sign({ "phoneNumber": phoneNumber }, jwtSecret, { expiresIn: 60 * 180 })
+            const token = jwt.sign({ "phoneNumber": phoneNumber }, jwtSecret, { expiresIn: 60 * 60 * 24 })
             return res.json({ status: 'ok', value: 'SMS code match.', "token": token })
 
         }
@@ -203,7 +204,9 @@ app.post('/api', async function (req, res) {
         
         return res.json({ status: 'ok', value: 'ID data\'s set.' })
     
-    } else if (req.body.idFiles) {
+    } 
+    
+    else if (req.body.idFiles) {
         if (!req.files || Object.keys(req.files).length === 0) {
             return res.status(400).json({ status: 'error', body: 'No files.'})
         }
@@ -315,6 +318,40 @@ app.post('/api', async function (req, res) {
         
         
 
+    } 
+
+    // TODO: add DB
+    else if (req.body.freelanceInfo) {
+        const { phoneNumber } = body
+        const { freelanceInfo, freelancePaymentsFrom, freelancePaymentsTo} = body
+        const { category, subCategory, customers, salesChannels, websites, socials } = freelanceInfo
+        const stringifiedWebsites = websites ? (websites.map(item => item.value)).join(';') : ''
+        const stringifiedSocials = socials ? (socials.map(item => item.value)).join(';') : ''
+        const [error, response] = 
+            await setFreelanceInfo(category, subCategory, customers, salesChannels, freelancePaymentsFrom, freelancePaymentsTo, phoneNumber)
+        
+        if (error) {
+            return res.json({ status: 'error', value: 'Something went wrong.', dbg: response })
+        }
+        
+        return res.json({ status: 'ok', value: 'ID data\'s set.' })
+    
+    } 
+
+    // TODO: add DB
+    else if (req.body.txSurvey) {
+        const { phoneNumber } = body
+        const { txSurvey } = body
+        const {txVolume, txCount, singleMaxLimitTx } = txSurvey
+        const [error, response] =  await setTxSurvey(txVolume, txCount, singleMaxLimitTx, phoneNumber)
+        
+        if (error) {
+            console.log(response)
+            return res.json({ status: 'error', value: 'Something went wrong.', dbg: response })
+        }
+        
+        return res.json({ status: 'ok', value: 'ID data\'s set.' })
+    
     } 
 
     

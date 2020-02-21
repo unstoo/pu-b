@@ -314,6 +314,81 @@ const setIdData = async (idDateIssue, idDateExpiration, idDivsionCode, idIssuer,
 
 
 // setPersonalData('Joe', 'Doe', '', '31-12-1965', 'United States', 996) -- OK
+const setFreelanceInfo = async (category, subCategory, customers, salesChannels, freelancePaymentsFrom, freelancePaymentsTo, phoneNumber) => {
+    const client = new Client(clientSettings)
+    try { 
+        await client.connect() 
+    } catch(e) {
+        await client.end()  
+        e = Object.assign(e, {debug : 'setFreelanceInfo() couldnt connect to pg. error: \n'})
+        return [
+            true,
+            e
+        ]
+    }
+
+    try {
+
+        const query = `UPDATE public.users`
+        + ` SET freelancecategory = $1::text, freelancesubcategory = $2::text, freelancecustomers = $3::text,` 
+        + ` freelancesaleschannels = $4::text, freelancepaymentsfrom = $5::text, freelancepaymentsto = $6::text` 
+        + ` websites = $7::text, socials = $8::text,` 
+        + ` WHERE phonenumber = $9::text`
+        const data = [category, subCategory, customers, salesChannels, freelancePaymentsFrom, freelancePaymentsTo, websites, socials, phoneNumber]
+        const response = await client.query(query, data)
+        await client.end() 
+   
+        return [
+            null,
+            response.rows[0]
+        ]
+    } catch (e) {
+        await client.end()  
+        // console.log(e);
+        // e = Object.assign(e, {debug : 'setFreelanceInfo() while running against pg'})
+        return [
+            true,
+            e
+        ]
+    }
+}
+
+
+const setTxSurvey = async (txVolume, txCount, singleMaxLimitTx, phoneNumber) => {
+    const client = new Client(clientSettings)
+    try { 
+        await client.connect() 
+    } catch(e) {
+        await client.end()  
+        e.debug = 'setTxSurvey() couldnt connect to pg. error: \n'
+        return [
+            true,
+            e
+        ]
+    }
+
+    try {
+
+        const query = `UPDATE public.users`
+        + ` SET txvolume = $1::text, txcount = $2::text, singlemaxlimittx = $3::text,` 
+        + ` WHERE phonenumber = $4::text`
+        const data = [txVolume, txCount, singleMaxLimitTx, phoneNumber]
+        const response = await client.query(query, data)
+        await client.end() 
+   
+        return [
+            null,
+            response.rows[0]
+        ]
+    } catch (e) {
+        await client.end()  
+        e.debug = 'error while setTxSurvey() against pg: \n'
+        return [
+            true,
+            e
+        ]
+    }
+}
 
 module.exports = {
     storePhoneNumber,
@@ -326,5 +401,7 @@ module.exports = {
     setAccountType,
     getAccountHolderName,
     setAddress,
-    setIdData
+    setIdData,
+    setFreelanceInfo,
+    setTxSurvey
 }
