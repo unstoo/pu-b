@@ -11,7 +11,7 @@
     "express": "^4.17.1",
     "express-fileupload": "^1.1.6",
     "formidable": "^2.0.0-canary.20200131.1",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "multer": "^1.4.2",
     "pg": "^7.18.1",
     "request": "^2.88.2",
